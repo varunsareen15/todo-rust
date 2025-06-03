@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "text": "find documents",
+    "done": false
+  },
+  {
+    "id": 2,
+    "text": "complete server setup",
+    "done": false
+  },
+  {
+    "id": 3,
+    "text": "start working on stratup",
+    "done": false
+  }
+]
