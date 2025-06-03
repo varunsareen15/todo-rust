@@ -269,7 +269,7 @@ fn save_todos_to_sqlite(conn: &mut Connection, todos: &[Todo]) {
 }
 
 fn init_db() -> Connection {
-    let conn = Connection::open("todos.db").unwrap();
+    let conn = Connection::open("/home/varun/Projects/todo/todos.db").unwrap();
     conn.execute(
         "CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
