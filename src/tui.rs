@@ -22,6 +22,15 @@ pub struct Todo {
     pub id: usize,
     pub text: String,
     pub done: bool,
+    pub due_date: Option<String>,
+    pub reminder: Option<String>,
+}
+
+fn format_todo(todo: &Todo) -> String {
+    let status = if todo.done { "[x]" } else { "[ ]" };
+    let due_date = todo.due_date.as_deref().unwrap_or("No due date");
+    let reminder = todo.reminder.as_deref().unwrap_or("No reminder");
+    format!("{} {} (Due: {}, Reminder: {})", status, todo.text, due_date, reminder)
 }
 
 pub fn run_tui(mut todos: Vec<Todo>) -> Result<Vec<Todo>, Box<dyn std::error::Error>> {
@@ -46,19 +55,14 @@ pub fn run_tui(mut todos: Vec<Todo>) -> Result<Vec<Todo>, Box<dyn std::error::Er
             let title_block = Block::default()
                 .borders(Borders::ALL)
                 .title(Spans::from(vec![Span::styled(
-                    "↑↓ move • Space toggle • a add • e edit • d delete • q quit",
+                    "↑↓ move • Space toggle • a add • e edit • d delete • t due date • r reminder • c clear reminder • q quit",
                     Style::default().fg(Color::Yellow),
                 )]));
 
             let items: Vec<ListItem> = todos
                 .iter()
                 .map(|t| {
-                    let text = if t.done {
-                        format!("[x] {}", t.text)
-                    } else {
-                        format!("[ ] {}", t.text)
-                    };
-                    ListItem::new(vec![Spans::from(Span::raw(text))])
+                    ListItem::new(vec![Spans::from(Span::raw(format_todo(t)))])
                 })
                 .collect();
 
@@ -113,6 +117,43 @@ pub fn run_tui(mut todos: Vec<Todo>) -> Result<Vec<Todo>, Box<dyn std::error::Er
                             }
                         }
                     }
+                    KeyCode::Char('t') => {
+                        if let Some(todo) = todos.get_mut(selected) {
+                            let tmp_path = "/tmp/todo_due.txt";
+                            fs::write(tmp_path, todo.due_date.as_deref().unwrap_or(""))?;
+
+                            if run_editor(tmp_path, &mut terminal).is_ok() {
+                                let updated = fs::read_to_string(tmp_path)?;
+                                let updated = updated.trim();
+                                if !updated.is_empty() {
+                                    todo.due_date = Some(updated.to_string());
+                                } else {
+                                    todo.due_date = None;
+                                }
+                            }
+                        }
+                    }
+                    KeyCode::Char('r') => {
+                        if let Some(todo) = todos.get_mut(selected) {
+                            let tmp_path = "/tmp/todo_reminder.txt";
+                            fs::write(tmp_path, todo.reminder.as_deref().unwrap_or(""))?;
+
+                            if run_editor(tmp_path, &mut terminal).is_ok() {
+                                let updated = fs::read_to_string(tmp_path)?;
+                                let updated = updated.trim();
+                                if !updated.is_empty() {
+                                    todo.reminder = Some(updated.to_string());
+                                } else {
+                                    todo.reminder = None;
+                                }
+                            }
+                        }
+                    }
+                    KeyCode::Char('c') => {
+                        if let Some(todo) = todos.get_mut(selected) {
+                            todo.reminder = None;
+                        }
+                    }
                     KeyCode::Char('a') => {
                         let tmp_path = "/tmp/todo_new.txt";
                         fs::write(tmp_path, "")?;
@@ -125,6 +166,8 @@ pub fn run_tui(mut todos: Vec<Todo>) -> Result<Vec<Todo>, Box<dyn std::error::Er
                                     id: todos.len() + 1,
                                     text: new_text.to_string(),
                                     done: false,
+                                    due_date: None,
+                                    reminder: None,
                                 });
                                 selected = todos.len().saturating_sub(1);
                             }
